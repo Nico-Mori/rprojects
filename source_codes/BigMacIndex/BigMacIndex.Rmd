@@ -10,6 +10,25 @@ output:
        toc_collapsed: yes
 ---
 
+<br />
+
+<center>
+<img src="https://alquimiaseconomicas.files.wordpress.com/2020/02/bigmac.png?w=656" alt="25746" border="0" width="50%" height="50%">
+</center>
+
+## Skills: R, Dplyr, Ggplot2, Plotly
+
+Available in [GitHub](https://github.com/Nico-Mori/rprojects/tree/main/source_codes/BigMacIndex)
+
+
+# Introduction
+
+[The Economist's Big Mac Index](https://www.economist.com/big-mac-index) was invented in 1986 as a lighthearted guide to whether currencies are at their “correct” level. It is based on the theory of purchasing-power parity (PPP), the notion that in the long run exchange rates should move towards the rate that would equalise the prices of an identical basket of goods and services (in this case, a burger) in any two countries.
+
+Burgernomics was never intended as a precise gauge of currency misalignment, merely a tool to make exchange-rate theory more digestible. Yet the Big Mac index has become a global standard, included in several economic textbooks and the subject of dozens of academic studies.
+
+In this project we will take a look at how the Big Mac index evolved in the last 20 years and draw some insights from the last edition, published in July 2021.
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(message = FALSE)
@@ -20,28 +39,22 @@ options(scipen = 999)
 library(plotly)
 library(ggplot2)
 library(dplyr)
+library(readr)
 ```
 
-<br />
+The Economist has made the data for the index (along with the scripts used for the calculations) available in their [repository in GitHub](https://github.com/TheEconomist/big-mac-data). A list with the continent of each country that appears in the index will be added the allow further analysis.
 
-<center>
-<img src="https://alquimiaseconomicas.files.wordpress.com/2020/02/bigmac.png?w=656" alt="25746" border="0" width="50%" height="50%">
-</center>
+```{r loading data, include=FALSE}
+raw_df <- read_csv('https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/output-data/big-mac-full-index.csv')
+continents <- read_delim('Datasets/continents.csv', delim=';')
 
-## Skills: R, Dplyr, Ggplot2, Plotly
-
-Download the Jupyter Notebook from [GitHub](https://github.com/Nico-Mori/pyprojects/blob/main/Big%20Mac%20Index/BigMacIndex.ipynb)
-
-```{r cars}
-summary(cars)
+df <- raw_df %>% left_join(continents, by='name')
 ```
 
-## Including Plots
+# Burgernomics across time
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+# Burgernomics in 2021
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Bonus track: currency volatility
