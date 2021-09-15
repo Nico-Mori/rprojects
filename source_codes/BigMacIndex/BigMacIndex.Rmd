@@ -1,0 +1,47 @@
+---
+title: "The Big Mac Index 🍔 - Exploratory Data Analysis"
+output:
+  html_document:
+    highlight: haddock
+    number_sections: no
+    self_contained: yes
+    toc: yes
+    toc_float:
+       toc_collapsed: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+
+options(scipen = 999)
+
+library(plotly)
+library(ggplot2)
+library(dplyr)
+```
+
+<br />
+
+<center>
+<img src="https://alquimiaseconomicas.files.wordpress.com/2020/02/bigmac.png?w=656" alt="25746" border="0" width="50%" height="50%">
+</center>
+
+## Skills: R, Dplyr, Ggplot2, Plotly
+
+Download the Jupyter Notebook from [GitHub](https://github.com/Nico-Mori/pyprojects/blob/main/Big%20Mac%20Index/BigMacIndex.ipynb)
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
