@@ -16,7 +16,9 @@ output:
 <img src="https://alquimiaseconomicas.files.wordpress.com/2020/02/bigmac.png?w=656" alt="25746" border="0" width="50%" height="50%">
 </center>
 
-## Skills: R, Dplyr, Ggplot2, Plotly
+<br />
+
+**Skills: R, Dplyr, Ggplot2, Plotly**
 
 Available in [GitHub](https://github.com/Nico-Mori/rprojects/tree/main/source_codes/BigMacIndex)
 
@@ -38,23 +40,136 @@ options(scipen = 999)
 
 library(plotly)
 library(ggplot2)
+library(skimr)
 library(dplyr)
 library(readr)
+library(DT)
 ```
 
 The Economist has made the data for the index (along with the scripts used for the calculations) available in their [repository in GitHub](https://github.com/TheEconomist/big-mac-data). A list with the continent of each country that appears in the index will be added the allow further analysis.
 
-```{r loading data, include=FALSE}
+```{r loading and checking data}
 raw_df <- read_csv('https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/output-data/big-mac-full-index.csv')
 continents <- read_delim('Datasets/continents.csv', delim=';')
 
 df <- raw_df %>% left_join(continents, by='name')
+
+skim(df)
 ```
+
+The table above shows that the GDP and adjusted columns have missing values. This is because the adjusted index (based on the GDP per capita) was introduced in July 2011 and has a reduced number of countries, while the full index sometimes add or remove countries.
+
+The index is calculated over 5 'base' currencies, but to keep it simple we will only analyze the one based on the US dollar (which is also the most representative), dropping the other ones. Country and currency codes will be also dropped.  
+
+```{r selecting columns}
+df<-df %>% 
+  select(date, name, continent, local_price, dollar_ex, dollar_price, USD_raw, GDP_dollar, adj_price, USD_adjusted) %>% 
+  rename(Edition=date, Country=name, Continent=continent)%>% 
+  mutate(across(c(dollar_ex, dollar_price, adj_price, USD_adjusted), ~ round(.x, 2)))
+```
+
 
 # Burgernomics across time
 
+Since April 2000, there have been `r length(unique(df$date))` editions of the index. While it was usually updated at the middle of each year (with some exceptions in 2006, 2007 and 2010), from 2012 it is updated in both January and July.
+
+As it was previously said, The Economist sometimes adds or removes countries for the index. But how many haven't always been part of the index? And which ones stayed on the least?
+
+```{r appearances by country}
+temp<-df %>% 
+  group_by(Country) %>% 
+  summarise(Appearances=n()) %>% 
+  arrange(Appearances, Country)
+
+ggplot(temp, aes(y=Appearances))+
+  geom_histogram(fill='orange')+
+  theme_minimal()+
+  coord_flip()+
+  xlab('Number of countries')
+
+datatable(
+  temp,
+  rownames = FALSE,
+  width = '400px',
+  colnames = c('Country', 'Nº appearances')
+)
+```
+
+The countries that appeared the least are from the Middle East, Central America and Eastern Europe. They all were part of the index for 7 editions. Coincidence or not, they all have developing economies.
+
+This leads us to another question: How is the trend? Does the overall number of countries included in the index change over time or there is always the same number that comes and goes?
+
+```{r appearances overall}
+temp<-df %>% 
+  group_by(Edition) %>% 
+  summarise(Countries=n()) 
+
+ggplotly(
+ggplot(temp, aes(x=Edition, y=Countries))+
+  geom_line(color='orange')+
+  theme_minimal()
+)
+```
+
+We can see that there is a pattern to increase the number of countries in the index. In the last twenty years has gone from 28 to 57 countries, doubling its size.
+
+Now, what has happened with the price of the Big Mac in the US, used as a base for all the other numbers to compare? As a reference, the [American Consumer Price Index](https://www.bls.gov/data/inflation_calculator.htm) in the same period has increased a 59.4%.
+
+```{r us evolution}
+temp<-df %>% 
+  filter(Country=='United States')
+
+ggplotly(
+ggplot(temp, aes(x=Edition, y=dollar_price))+
+  geom_line(color='red')+
+  theme_minimal()+
+  ylab('USD Price')+
+  ylim(0,max(temp$dollar_price))
+)
+```
+
+Going from \$2.51 to \$5.65 the Big Mac has more than doubled its price in the US (a 125.1% increase to be precise), way more than the increase of the Consumer Price Index, which makes us [question the reliability](https://www.investopedia.com/articles/07/consumerpriceindex.asp) of the last one. Notice also that the price stayed stable in the years that followed financial crisis (the burst of the .com bubble in 2000, the subprime mortgages in 2008 and the COVID pandemic in 2020).
+
+What happened with the price in the other countries? We made a ranking with the 5 countries with the highest and the lowest variations in their local currencies to get an idea.
+
+```{r variation ranking}
+temp<-df %>% 
+  filter(Country %in% ((df %>% filter(Edition=='2000-04-01'))$Country)) %>% 
+  group_by(Country) %>% 
+  summarise(local_price_2000=first(local_price), local_price_2021=last(local_price), 
+            pct_variation=round((local_price_2021/local_price_2000-1)*100, 1))
+
+datatable(
+  temp,
+  rownames = FALSE,
+  width = '800px',
+  colnames = c('Country', 'Price 2000', 'Price 2021', '% Variation')
+)
+```
+
+The ranking shows us that the prices have increased in all the countries, altough in very different measures. While in countries like Israel, Switzerland and Taiwan they increased less than 20%, in Argentina the variation was of 15100%, which means that today you need 151 times the money you needed in 2000 to buy a Big Mac!
+
+Having an idea about how the index evolved over time, we will next take a look at the last edition.
 
 # Burgernomics in 2021
+
+First, we will rank the countries by the price in US dollars of the Big Mac, to see if there are any patterns.
+
+```{r last edition rank}
+temp<-df %>% 
+  filter(Edition==max(Edition)) %>% 
+  select(!Edition)
+
+datatable(
+  temp,
+  rownames = FALSE,
+  width = '800px'
+)
+```
+There is a big difference between the top and the bottom of the ranking. A Big Mac in Switzerland costs up to 3.2 times more than in South Africa. We see that all the countries in the top of the list (except for Venezuela) are countries with a high GDP per capita, while the ones in the bottom have a low GDP.
+
+To check if there is a correlation between the GDP per capita and the price of the Big Mac we are going to use a scatter plot.
+
 
 
 # Bonus track: currency volatility
