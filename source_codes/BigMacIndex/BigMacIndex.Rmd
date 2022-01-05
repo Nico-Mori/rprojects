@@ -44,6 +44,7 @@ library(skimr)
 library(dplyr)
 library(readr)
 library(DT)
+library(forcats)
 ```
 
 The Economist has made the data for the index (along with the scripts used for the calculations) available in their [repository in GitHub](https://github.com/TheEconomist/big-mac-data). A list with the continent of each country that appears in the index will be added the allow further analysis.
@@ -57,7 +58,7 @@ df <- raw_df %>% left_join(continents, by='name')
 skim(df)
 ```
 
-The table above shows that the GDP and adjusted columns have missing values. This is because the adjusted index (based on the GDP per capita) was introduced in July 2011 and has a reduced number of countries, while the full index sometimes add or remove countries.
+The table above shows that the GDP and adjusted columns have missing values. This is because the adjusted index (based on the GDP per capita) was introduced in July 2011 and has a reduced number of countries, while the full index sometimes adds or removes countries.
 
 The index is calculated over 5 'base' currencies, but to keep it simple we will only analyze the one based on the US dollar (which is also the most representative), dropping the other ones. Country and currency codes will be also dropped.  
 
@@ -71,18 +72,18 @@ df<-df %>%
 
 # Burgernomics across time
 
-Since April 2000, there have been `r length(unique(df$date))` editions of the index. While it was usually updated at the middle of each year (with some exceptions in 2006, 2007 and 2010), from 2012 it is updated in both January and July.
+Since April 2000, there have been `r length(unique(df$Edition))` editions of the index. While it was usually updated at the middle of each year (with some exceptions in 2006, 2007 and 2010), from 2012 it is updated in both January and July.
 
 As it was previously said, The Economist sometimes adds or removes countries for the index. But how many haven't always been part of the index? And which ones stayed on the least?
 
 ```{r appearances by country}
 temp<-df %>% 
-  group_by(Country) %>% 
+  group_by(Country, Continent) %>% 
   summarise(Appearances=n()) %>% 
   arrange(Appearances, Country)
 
 ggplot(temp, aes(y=Appearances))+
-  geom_histogram(fill='orange')+
+  geom_histogram(fill='orange', bins=10)+
   theme_minimal()+
   coord_flip()+
   xlab('Number of countries')
@@ -91,7 +92,7 @@ datatable(
   temp,
   rownames = FALSE,
   width = '400px',
-  colnames = c('Country', 'Nº appearances')
+  colnames = c('Country','Continent', 'Nº appearances')
 )
 ```
 
@@ -130,7 +131,7 @@ ggplot(temp, aes(x=Edition, y=dollar_price))+
 
 Going from \$2.51 to \$5.65 the Big Mac has more than doubled its price in the US (a 125.1% increase to be precise), way more than the increase of the Consumer Price Index, which makes us [question the reliability](https://www.investopedia.com/articles/07/consumerpriceindex.asp) of the last one. Notice also that the price stayed stable in the years that followed financial crisis (the burst of the .com bubble in 2000, the subprime mortgages in 2008 and the COVID pandemic in 2020).
 
-What happened with the price in the other countries? We made a ranking with the 5 countries with the highest and the lowest variations in their local currencies to get an idea.
+What happened with the price in the other countries? We made a ranking with the variations in their local currencies to get an idea.
 
 ```{r variation ranking}
 temp<-df %>% 
@@ -170,6 +171,67 @@ There is a big difference between the top and the bottom of the ranking. A Big M
 
 To check if there is a correlation between the GDP per capita and the price of the Big Mac we are going to use a scatter plot.
 
+```{r big mac vs gdp}
+temp<-df %>% 
+  filter(Edition==max(Edition)) %>% 
+  select(!Edition)
+
+
+ggplotly(
+ggplot(temp, aes(y=dollar_price, x=GDP_dollar, color=Continent))+
+  geom_point()+
+  theme_minimal()+
+  ylab('Big Mac price in usd')+
+  xlab('GPD per capita in usd')
+)
+  
+```
+
+There is a clear correlation between the two variables. This makes sense, you would expect average burger prices to be cheaper in poor countries than in rich ones because costs such as rent and worker’s wages are lower. To address this issue The Economist created an adjusted index, by using a linear regression of GDP vs Big Mac Price.
+
+We will compare both versions to see how the correction affects the ranking.
+
+```{r 2021 index}
+temp<-df %>% 
+  filter(Edition==max(Edition)) %>% 
+  select(!Edition) %>% 
+  top_n(25, USD_raw) %>% 
+  mutate(Country=fct_reorder(Country, USD_raw)) 
+
+ggplotly(temp %>% 
+  ggplot( aes(x=Country, y=USD_raw, color=Continent))+
+  geom_segment( aes(x=Country, xend=Country, y=0, yend=USD_raw), alpha=.4) +
+  geom_point(size=2.5) +
+  ggtitle('Big Mac Index - Raw Version')+
+  xlab('Countries')+
+  ylab('Difference against US dollar')+
+  theme_minimal() +
+  coord_flip())
+```
+
+```{r 2021 index adjusted}
+temp<-df %>% 
+  filter(Edition==max(Edition)) %>% 
+  select(!Edition) %>% 
+  top_n(25, USD_adjusted) %>% 
+  mutate(Country=fct_reorder(Country, USD_adjusted)) 
+
+ggplotly(temp %>% 
+  ggplot( aes(x=Country, y=USD_adjusted, color=Continent))+
+  geom_segment( aes(x=Country, xend=Country, y=0, yend=USD_adjusted), alpha=.4) +
+  geom_point(size=2.5) +
+  ggtitle('Big Mac Index - Raw Version')+
+  xlab('Countries')+
+  ylab('Difference against US dollar')+
+  theme_minimal() +
+  coord_flip())
+```
 
 
 # Bonus track: currency volatility
+
+While the main objective of the Big Mac Index is to determine wheter a country's currency is too cheap or too expensive, the data can be used to draw alternative insights. For example, the volatility of a country's exchange rate.
+
+What is the relevance of this indicator? Let's put it this way: Foreign investors inevitably seek out stable countries with strong economic performance in which to invest their capital. A country with such positive attributes will draw investment funds away from other countries perceived to have more political and economic risk.
+
+By analyzing the standard deviation of each country's adjusted index along time we can determine how stable are their exchange rates.
