@@ -29,7 +29,7 @@ Available in [GitHub](https://github.com/Nico-Mori/rprojects/tree/main/source_co
 
 Burgernomics was never intended as a precise gauge of currency misalignment, merely a tool to make exchange-rate theory more digestible. Yet the Big Mac index has become a global standard, included in several economic textbooks and the subject of dozens of academic studies.
 
-In this project we will take a look at how the Big Mac index evolved in the last 20 years and draw some insights from the last edition, published in July 2021.
+In this project we will take a look at how the Big Mac index evolved in the last 20 years and draw some insights from the last edition, published in January 2022.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -96,7 +96,7 @@ datatable(
 )
 ```
 
-The countries that appeared the least are from the Middle East, Central America and Eastern Europe. They all were part of the index for 7 editions. Coincidence or not, they all have developing economies.
+The countries that appeared the least are from the Middle East, Central America and Eastern Europe. They all were part of the index for 8 editions. Coincidence or not, they all have developing economies.
 
 This leads us to another question: How is the trend? Does the overall number of countries included in the index change over time or there is always the same number that comes and goes?
 
@@ -114,7 +114,7 @@ ggplot(temp, aes(x=Edition, y=Countries))+
 
 We can see that there is a pattern to increase the number of countries in the index. In the last twenty years has gone from 28 to 57 countries, doubling its size.
 
-Now, what has happened with the price of the Big Mac in the US, used as a base for all the other numbers to compare? As a reference, the [American Consumer Price Index](https://www.bls.gov/data/inflation_calculator.htm) in the same period has increased a 59.4%.
+Now, what has happened with the price of the Big Mac in the US, used as a base for all the other numbers to compare? As a reference, the [American Consumer Price Index](https://www.bls.gov/data/inflation_calculator.htm) in the same period has increased a 66.7%.
 
 ```{r us evolution}
 temp<-df %>% 
@@ -129,7 +129,7 @@ ggplot(temp, aes(x=Edition, y=dollar_price))+
 )
 ```
 
-Going from \$2.51 to \$5.65 the Big Mac has more than doubled its price in the US (a 125.1% increase to be precise), way more than the increase of the Consumer Price Index, which makes us [question the reliability](https://www.investopedia.com/articles/07/consumerpriceindex.asp) of the last one. Notice also that the price stayed stable in the years that followed financial crisis (the burst of the .com bubble in 2000, the subprime mortgages in 2008 and the COVID pandemic in 2020).
+Going from \$2.51 to \$5.65 the Big Mac has more than doubled its price in the US (a 131.4% increase to be precise), way more than the increase of the Consumer Price Index, which makes us [question the reliability](https://www.investopedia.com/articles/07/consumerpriceindex.asp) of the last one. Notice also that the price stayed stable in the years that followed financial crisis (the burst of the .com bubble in 2000, the subprime mortgages in 2008 and the COVID pandemic in 2020).
 
 What happened with the price in the other countries? We made a ranking with the variations in their local currencies to get an idea.
 
@@ -137,14 +137,14 @@ What happened with the price in the other countries? We made a ranking with the 
 temp<-df %>% 
   filter(Country %in% ((df %>% filter(Edition=='2000-04-01'))$Country)) %>% 
   group_by(Country) %>% 
-  summarise(local_price_2000=first(local_price), local_price_2021=last(local_price), 
-            pct_variation=round((local_price_2021/local_price_2000-1)*100, 1))
+  summarise(local_price_2000=first(local_price), local_price_2022=last(local_price), 
+            pct_variation=round((local_price_2022/local_price_2000-1)*100, 1))
 
 datatable(
   temp,
   rownames = FALSE,
   width = '800px',
-  colnames = c('Country', 'Price 2000', 'Price 2021', '% Variation')
+  colnames = c('Country', 'Price 2000', 'Price 2022', '% Variation')
 )
 ```
 
@@ -152,7 +152,7 @@ The ranking shows us that the prices have increased in all the countries, altoug
 
 Having an idea about how the index evolved over time, we will next take a look at the last edition.
 
-# Burgernomics in 2021
+# Burgernomics in 2022
 
 First, we will rank the countries by the price in US dollars of the Big Mac, to see if there are any patterns.
 
@@ -191,17 +191,17 @@ There is a clear correlation between the two variables. This makes sense, you wo
 
 We will compare both versions to see how the correction affects the ranking.
 
-```{r 2021 index}
+```{r 2022 index, fig.height=8}
 temp<-df %>% 
   filter(Edition==max(Edition)) %>% 
   select(!Edition) %>% 
-  top_n(25, USD_raw) %>% 
+  #top_n(30, USD_raw) %>% 
   mutate(Country=fct_reorder(Country, USD_raw)) 
 
 ggplotly(temp %>% 
   ggplot( aes(x=Country, y=USD_raw, color=Continent))+
   geom_segment( aes(x=Country, xend=Country, y=0, yend=USD_raw), alpha=.4) +
-  geom_point(size=2.5) +
+  geom_point(size=2.0) +
   ggtitle('Big Mac Index - Raw Version')+
   xlab('Countries')+
   ylab('Difference against US dollar')+
@@ -209,17 +209,18 @@ ggplotly(temp %>%
   coord_flip())
 ```
 
-```{r 2021 index adjusted}
+```{r 2022 index adjusted, fig.height=8}
 temp<-df %>% 
   filter(Edition==max(Edition)) %>% 
   select(!Edition) %>% 
-  top_n(25, USD_adjusted) %>% 
+  #top_n(30, USD_adjusted) %>% 
+  filter(!is.na(USD_adjusted)) %>% 
   mutate(Country=fct_reorder(Country, USD_adjusted)) 
 
 ggplotly(temp %>% 
   ggplot( aes(x=Country, y=USD_adjusted, color=Continent))+
   geom_segment( aes(x=Country, xend=Country, y=0, yend=USD_adjusted), alpha=.4) +
-  geom_point(size=2.5) +
+  geom_point(size=2.0) +
   ggtitle('Big Mac Index - Raw Version')+
   xlab('Countries')+
   ylab('Difference against US dollar')+
@@ -227,11 +228,46 @@ ggplotly(temp %>%
   coord_flip())
 ```
 
+There clearly is a difference when adjusting the index to GDP.
 
 # Bonus track: currency volatility
 
-While the main objective of the Big Mac Index is to determine wheter a country's currency is too cheap or too expensive, the data can be used to draw alternative insights. For example, the volatility of a country's exchange rate.
+While the main objective of the Big Mac Index is to determine whether a country's currency is too cheap or too expensive, the data can be used to draw alternative insights. For example, the volatility of a country's exchange rate.
 
 What is the relevance of this indicator? Let's put it this way: Foreign investors inevitably seek out stable countries with strong economic performance in which to invest their capital. A country with such positive attributes will draw investment funds away from other countries perceived to have more political and economic risk.
 
 By analyzing the standard deviation of each country's adjusted index along time we can determine how stable are their exchange rates.
+
+```{r volatility}
+temp<-df %>% 
+  filter(!is.na(USD_adjusted)) %>% 
+  group_by(Country) %>% 
+  summarise(Deviation=round(sd(USD_adjusted),2)) %>% 
+  arrange(desc(Deviation))
+
+datatable(
+  temp,
+  rownames = FALSE,
+  width = '400px',
+  colnames = c('Country', 'Standard Deviation')
+)
+```
+
+While all the countries had variations in their index (except the US, because we are using the USD adjusted index), only 4 of them really stood out with a standard deviation way above average (`r round(temp %>% summarise(mean(Deviation)), 2)`). They were Argentina, Turkey, Colombia and Brazil. The common denominator is that they all are developing economies (and 3 of them are from South America).
+We will plot the evolution of each country's index in order to see if they have similar trends.
+
+```{r}
+temp<-df %>% 
+  filter(Country %in% c('Argentina','Brazil','Colombia','Turkey'), !is.na(USD_adjusted)) 
+
+ggplotly(
+ggplot(temp, aes(x=Edition, y=USD_adjusted))+
+  geom_line(color='orange')+
+  facet_wrap(vars(Country))+
+  geom_hline(aes(color='red', yintercept=0))+
+  theme_minimal()+
+  theme(legend.position='none')
+) 
+```
+
+The index for the South American countries have a similar trend: They were quite overvalued at the beginning of the decade, started decreasing until 2016, then increased until 2018 and fell again (although Argentina's index has been increasing since 2019). In the same period, Turkey's currency has been steadily depreciating.
